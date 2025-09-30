@@ -4,14 +4,14 @@ from Constants import critical_constants
 from calculate import calculate_z
 
 user_values = {
-    'C1': 0.90,
-    'C3': 0.05,
-    'nC5': 0.05
+    'C1': 0.70,
+    'C3': 0.2,
+    'nC5': 0.1
 
 }
 
 # Определим диапазоны температур и давлений
-T_min, T_max = 150, 400  # Минимальная и максимальная температура
+T_min, T_max = 300, 301  # Минимальная и максимальная температура
 P_min, P_max = 1, 20  # Минимальное и максимальное давление
 T_step = 1  # Шаг по температуре
 P_step = 0.1  # Шаг по давлению
@@ -151,6 +151,29 @@ for i, P in enumerate(P_range):
     for j, T in enumerate(T_range):
         stability_map[i, j] = check_stability(T, P, user_values, critical_constants)
 
+# Найдём границу(ы) между стабильным и нестабильным состоянием
+stability_at_T = stability_map[:, 0]  # Так как T_range содержит только одну температуру (300 К)
+
+# Найдём индексы, где происходит изменение стабильности
+changes = np.where(np.diff(stability_at_T) != 0)[0]
+
+if len(changes) > 0:
+    print("Давления на границе стабильности (МПа):")
+    for idx in changes:
+        # Граница находится между P_range[idx] и P_range[idx+1]
+        P_low = P_range[idx]
+        P_high = P_range[idx + 1]
+        P_boundary = (P_low + P_high) / 2  # Простое усреднение
+        print(f"  ~{P_boundary:.2f} МПа (между {P_low:.2f} и {P_high:.2f})")
+else:
+    # Проверим, всё ли стабильно или всё нестабильно
+    if np.all(stability_at_T == 1):
+        print("Во всём диапазоне давлений (1–20 МПа) система стабильна.")
+    elif np.all(stability_at_T == 0):
+        print("Во всём диапазоне давлений (1–20 МПа) система нестабильна.")
+    else:
+        print("Не удалось определить границу стабильности.")
+
 # Визуализация
 plt.figure(figsize=(10, 6))
 plt.contourf(T_range, P_range, stability_map, levels=[-0.5, 0.5, 1.5], colors=['red', 'blue'], alpha=0.5)
@@ -160,3 +183,4 @@ plt.xlabel('Температура (К)')  # Теперь температура
 plt.title('Фазовая диаграмма')
 plt.grid(True)
 plt.show()
+
